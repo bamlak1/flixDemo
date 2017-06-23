@@ -9,13 +9,17 @@
 import UIKit
 import AlamofireImage
 
-class MoviesViewController: UIViewController, UITableViewDataSource {
+class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBarDelegate {
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
+    @IBOutlet weak var movieSearchBar: UISearchBar!
 
     @IBOutlet weak var tableView: UITableView!
     var movies: [[String: Any]] = []
     var refreshControl: UIRefreshControl!
+    var filteredMovies : [[String:Any]] = []
+    
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,16 +33,11 @@ class MoviesViewController: UIViewController, UITableViewDataSource {
         refreshControl.addTarget(self, action: #selector(MoviesViewController.didPullToRefresh(_:)), for: .valueChanged)
         tableView.insertSubview(refreshControl, at: 0)
         
-        
+        movieSearchBar.delegate = self
         tableView.dataSource = self
         
         fetchMovies()
         activityIndicator.stopAnimating()
-        
-        
-
-
-        // Do any additional setup after loading the view.
     }
 
     func didPullToRefresh(_ refreshControl: UIRefreshControl) {
@@ -46,19 +45,53 @@ class MoviesViewController: UIViewController, UITableViewDataSource {
     
     }
     
+    
+    
+    
+    
+    
+    
+
+    
+    func searchBar(_ movieSearchBar: UISearchBar, textDidChange searchText: String) {
+        if searchText.isEmpty {
+            filteredMovies = movies
+        
+        } else {
+        
+            filteredMovies = movies.filter { (movie: [String: Any]) -> Bool in
+                let title = movie["title"] as! String
+                return title.range(of: searchText, options: .caseInsensitive, range: nil, locale: nil) != nil
+            
+            }
+        }
+        
+        tableView.reloadData()
+
+    }
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return movies.count
+        return filteredMovies.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "MovieCell", for: indexPath) as! MovieCell
         
-        let movie = movies[indexPath.row]
+        let movie = filteredMovies[indexPath.row]
         let title = movie["title"] as! String
         let overview = movie["overview"] as! String
         cell.titleLabel.text = title
@@ -81,7 +114,7 @@ class MoviesViewController: UIViewController, UITableViewDataSource {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let cell = sender as! UITableViewCell
         if let indexPath = tableView.indexPath(for: cell) {
-            let movie = movies[indexPath.row]
+            let movie = filteredMovies[indexPath.row]
             let detailViewController = segue.destination as! DetailViewController
             detailViewController.movie = movie
             
@@ -104,6 +137,7 @@ class MoviesViewController: UIViewController, UITableViewDataSource {
                 let dataDictionary = try! JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
                 let movies = dataDictionary["results"] as! [[String: Any]]
                 self.movies = movies
+                self.filteredMovies = movies
                 self.tableView.reloadData()
                 self.refreshControl.endRefreshing()
                 //could not attach to pid
